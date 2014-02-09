@@ -327,3 +327,85 @@ test["eventLoop throws exception and pauses by default if actor behavior throws 
     }));
     test.done();        
 };
+
+test["eventLoop allows fail handler to be overriden"] = function (test) {
+    test.expect(5);
+    var stepping = tart.stepping();
+    var createSandbox = stepping.sponsor(sandbox.createBeh);
+
+    var moduleString = fs.readFileSync(
+        path.normalize(path.join(__dirname, 'eventLoop', 'failBeh.js')), 'utf8');
+
+    var network = marshal.router(stepping.sponsor);
+    var transport = network.transport;
+    var testDomain = network.domain('ocap:test'); 
+
+    var sandboxControls;
+
+    var okCreated = testDomain.sponsor(function okCreatedBeh(message) {
+        // console.log("OK CREATED");
+        sandboxControls = message;
+
+        // Set up the test routing table.
+        var domainURI = 
+            'ansible://' + sandboxControls.domain + '/';
+        network.routingTable[domainURI] = 
+            sandboxControls.receptionist;
+
+        var controlDomainURI = 
+            'ansible://' + sandboxControls.controlDomain + '/';
+        network.routingTable[controlDomainURI] = 
+            sandboxControls.controlReceptionist;
+
+        // Sponsor the test behaviors.
+        transport({
+            address: sandboxControls.sponsor,
+            content: testDomain.encode({
+                ok: okSponsored,
+                fail: fail,
+                module: moduleString
+            })
+        });
+    });
+
+    var eventLoopFail = testDomain.sponsor(function eventLoopFailBeh(message) {
+        test.equal(message.message, 'boom!');
+        test.ok(message.stack);
+    });
+
+    var okSponsored = testDomain.sponsor(function okSponsoredBeh(message) {
+        // console.log("OK SPONSORED");
+        // Send messages that will throw exceptions.
+        var failActor = message;
+        failActor('fail once');
+        failActor('fail again');
+
+        // Dispatch messages until failure.
+        // FIXME: There is a race condition between send the message to
+        //        'actorWithFirstBeh' and invoking 'eventLoop' capability.
+        //        The current code ignores this race condition.
+        transport({
+            address: sandboxControls.eventLoop,
+            content: testDomain.encode({
+                fail: fail,
+                arguments: [{fail: eventLoopFail}]
+            })
+        });
+    });    
+
+    var fail = testDomain.sponsor(function failBeh(message) {
+        throw new Error(message);
+    });    
+
+    createSandbox({ok: okCreated, fail: fail, transport: transport});
+    test.ok(stepping.eventLoop({
+        // log: function (effect) { 
+        //     if (effect === false) {
+        //         console.log('no events exist for dispatch');
+        //     } else {
+        //         console.log(require('util').inspect(effect, {depth: null}));
+        //     }
+        // }
+    }));
+    test.done();        
+};

@@ -53,6 +53,33 @@ var adapter = function adapter(fn) {
     };
 };
 
+// We require a special type of adapter in order to convert exceptions thrown
+// from sandboxed behavior that are passed to the `fail` function if given.
+var eventLoopAdapter = function eventLoopAdapter(fn) {
+    return function applyBeh(message) {
+        if (message && Array.isArray(message.arguments)
+            && typeof message.arguments[0] === 'object') {
+
+            if (message.arguments[0].fail) {
+                var _fail = message.arguments[0].fail;
+                message.arguments[0].fail = function (exception) {
+                    var error = new Error(exception.message);
+                    error.stack = exception.stack;
+                    _fail(error);
+                };
+            }
+        }
+        try {
+            var result = fn.apply({}, message.arguments);
+            message && message.ok && message.ok(result);
+        } catch (ex) {
+            var error = new Error(ex.message);
+            error.stack = ex.stack;
+            message && message.fail && message.fail(error);
+        }
+    };
+};
+
 /*
   * `message`: _Object_
     * `fail`: _Actor_ Fail actor to respond to if errors occur.
@@ -137,7 +164,7 @@ sandbox.createBeh = function createBeh (message) {
     // they are nicely bundled together.    
     var dispatchCapURI = controlDomain.localToRemote(dispatchProxy);
 
-    var eventLoopBeh = adapter(stepping.eventLoop);
+    var eventLoopBeh = eventLoopAdapter(stepping.eventLoop);
     var eventLoop = controlDomain.sponsor(eventLoopBeh);
     var eventLoopRevocableCaps = revocable.proxy(eventLoop);
     revokes.push(eventLoopRevocableCaps.revokeBeh);
