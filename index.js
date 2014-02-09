@@ -82,9 +82,12 @@ var eventLoopAdapter = function eventLoopAdapter(fn) {
 
 /*
   * `message`: _Object_
-    * `fail`: _Actor_ Fail actor to respond to if errors occur.
-    * `ok`: _Actor_ Ok actor to respond to if no errors.
-    * `transport`: _Actor_ Transport actor.
+    * `fail`: _Actor_ `function (error) {}` Fail actor to respond to if errors
+        occur when creating.
+    * `ok`: _Actor_ `function (response) {}` Ok actor to respond to with created
+        capabilities.
+    * `transport`: _Actor_ `function (message) {}` Transport actor capability
+        that will be used for outbound traffic from the created sandbox.
 */
 sandbox.createBeh = function createBeh (message) {
     // host configuration sponsors revocable proxies and destroy capability
@@ -112,11 +115,13 @@ sandbox.createBeh = function createBeh (message) {
 
     /*
       * `message`: _Object_
-        * `fail`: _Actor_ Fail actor to respond to if errors occur.
-        * `module`: _String_ Node.js module that exports behaviors that should be
-            sandboxed. The behaviors will be sent to `ok` actor as a map of
-            name-behavior pairs, or a single behavior.        
-        * `ok`: _Actor_ Ok actor to respond to with sandboxed actor behaviors.
+        * `fail`: _Actor_ `function (error) {}` Fail actor to respond to if
+            errors occur.
+        * `module`: _String_ Node.js module that exports behaviors that should
+            be sponsored. The resulting actors will be sent to `ok` actor as a
+            map of name-capability URI pairs, or a single capability URI.
+        * `ok`: _Actor_ `function (response) {}` Ok actor to respond to with
+            sponsored capability URIs.
     */
     var sponsorBeh = function sponsorBeh(message) {
         var reqOk = message.ok;
