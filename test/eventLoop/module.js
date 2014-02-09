@@ -31,17 +31,19 @@ OTHER DEALINGS IN THE SOFTWARE.
 "use strict";
 
 var firstBeh = module.exports = function firstBeh(message) {
-    var msg = message;
+    var msg = {};
+    msg.customer = message.customer;
     msg.first = true;
     this.self(msg);
     this.behavior = secondBeh;
 };
 
 var secondBeh = function secondBeh(message) {
-    var msg = message;
+    var msg = {};
+    msg.first = message.first;
     msg.second = true;
     this.behavior = failBeh;
-    msg.customer(msg);
+    message.customer(msg);
 };
 
 var failBeh = function failBeh(message) {

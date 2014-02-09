@@ -67,8 +67,6 @@ test["eventLoop by default dispatches all events and returns 'true'"] = function
         network.routingTable[controlDomainURI] = 
             sandboxControls.controlReceptionist;
 
-
-
         // Sponsor the test behaviors.
         transport({
             address: sandboxControls.sponsor,
@@ -409,3 +407,93 @@ test["eventLoop allows fail handler to be overriden"] = function (test) {
     }));
     test.done();        
 };
+
+test["eventLoop allows for logging effects of dispatched events"] = function (test) {
+    test.expect(12);
+    var stepping = tart.stepping();
+    var createSandbox = stepping.sponsor(sandbox.createBeh);
+
+    var moduleString = fs.readFileSync(
+        path.normalize(path.join(__dirname, 'eventLoop', 'module.js')), 'utf8');
+
+    var network = marshal.router(stepping.sponsor);
+    var transport = network.transport;
+    var testDomain = network.domain('ocap:test'); 
+
+    var sandboxControls;
+
+    var okCreated = testDomain.sponsor(function okCreatedBeh(message) {
+        // console.log("OK CREATED");
+        sandboxControls = message;
+
+        // Set up the test routing table.
+        var domainURI = 
+            'ansible://' + sandboxControls.domain + '/';
+        network.routingTable[domainURI] = 
+            sandboxControls.receptionist;
+
+        var controlDomainURI = 
+            'ansible://' + sandboxControls.controlDomain + '/';
+        network.routingTable[controlDomainURI] = 
+            sandboxControls.controlReceptionist;
+
+        // Sponsor the test behaviors.
+        transport({
+            address: sandboxControls.sponsor,
+            content: testDomain.encode({
+                ok: okSponsored,
+                fail: fail,
+                module: moduleString
+            })
+        });
+    });
+
+    var eventLoopLog = testDomain.sponsor(function eventLoopLogBeh(message) {
+        if (message) { // last is false
+            test.ok(message.created);
+            test.ok(message.sent);
+            test.ok(message.event);
+            test.ok(message.behavior);
+            test.ok(message.became);
+        }
+    });
+
+    var okSponsored = testDomain.sponsor(function okSponsoredBeh(message) {
+        // console.log("OK SPONSORED");
+        var actorWithFirstBeh = message;
+        actorWithFirstBeh({customer: this.sponsor(function () {})});
+    
+        // Dispatch all messages.
+        // FIXME: There is a race condition between send the message to
+        //        'actorWithFirstBeh' and invoking 'eventLoop' capability.
+        //        The current code ignores this race condition.
+        transport({
+            address: sandboxControls.eventLoop,
+            content: testDomain.encode({
+                ok: okEventLoop,
+                arguments: [{log: eventLoopLog}]
+            })
+        });
+    });
+
+    var okEventLoop = testDomain.sponsor(function okEventLoop(message) {
+        // console.log("OK EVENT LOOP");
+        test.ok(message);
+    });    
+
+    var fail = testDomain.sponsor(function failBeh(message) {
+        throw new Error(message);
+    });    
+
+    createSandbox({ok: okCreated, fail: fail, transport: transport});
+    test.ok(stepping.eventLoop({
+        // log: function (effect) { 
+        //     if (effect === false) {
+        //         console.log('no events exist for dispatch');
+        //     } else {
+        //         console.log(require('util').inspect(effect, {depth: null}));
+        //     }
+        // }
+    }));
+    test.done();        
+};    
