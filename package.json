@@ -1,6 +1,6 @@
 {
   "name": "tart-stepping-sandbox",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Sandbox for tart-stepping",
   "scripts": {
     "inject-examples": "node scripts/injectExamples.js",
