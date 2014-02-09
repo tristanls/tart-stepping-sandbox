@@ -1,6 +1,6 @@
 /*
 
-effect.js - effect tests
+dispatch.js - dispatch tests
 
 The MIT License (MIT)
 
@@ -38,7 +38,7 @@ var tart = require('tart-stepping');
 
 var test = module.exports = {};
 
-test["effect should return an initial state prior to any dispatch"] = function (test) {
+test['dispatch returns an effect of actor processing message after dispatch'] = function (test) {
     test.expect(3);
     var stepping = tart.stepping();
     var createSandbox = stepping.sponsor(sandbox.createBeh);
@@ -78,19 +78,24 @@ test["effect should return an initial state prior to any dispatch"] = function (
         });
     });
 
+    var actorWithFirstBeh;
     var okSponsored = testDomain.sponsor(function okSponsoredBeh(message) {
-        // Check initial configuration state
+        actorWithFirstBeh = message;
+        actorWithFirstBeh({customer: fail});
+
+        // Dispatch a single event
         transport({
-            address: sandboxControls.effect,
+            address: sandboxControls.dispatch,
             content: testDomain.encode({
-                ok: okInitial
+                ok: okDispatch
             })
         });
     });
 
-    var okInitial = testDomain.sponsor(function okInitialBeh(message) {
-        test.equal(message.created.length, 2);
-        test.equal(message.sent.length, 0);
+    var okDispatch = testDomain.sponsor(function okDispatchBeh(message) {
+        // {customer: fail} message should have been delivered to actorWithFirstBeh
+        test.strictEqual(message.event.message.customer, fail);
+        test.strictEqual(message.event.context.self, actorWithFirstBeh);
     });
 
     var fail = testDomain.sponsor(function failBeh(message) {
