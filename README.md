@@ -107,7 +107,7 @@ Message format:
 
 ### sandboxCapabilities.eventLoop
 
-Dispatch events in a manner provided by `control`. This is a wrapper around [stepping.eventLoop(\[control\])](https://github.com/dalnefre/tart-stepping##steppingeventloopcontrol) using [tart-adapter](https://github.com/tristanls/tart-adapter) message format.
+Dispatch events in a manner provided by `control`. This is a wrapper around [stepping.eventLoop(\[control\])](https://github.com/dalnefre/tart-stepping#steppingeventloopcontrol) using [tart-adapter](https://github.com/tristanls/tart-adapter) message format.
 
 ### sandboxCapabilities.sponsor
 
