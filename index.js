@@ -193,12 +193,24 @@ sandbox.createBeh = function createBeh (message) {
     var destroy = controlDomain.sponsor(destroyBeh);
     var destroyCapURI = controlDomain.localToRemote(destroy);
 
+    /*
+      * `message`: _Object_ _(Default: undefined)_
+        * `ok`: _Actor_
+    */
+    var effectBeh = function effectBeh(message) {
+        // respond with current effect
+        message && message.ok instanceof Function && message.ok(stepping.effect);
+    };
+    var effect = controlDomain.sponsor(effectBeh);
+    var effectCapURI = controlDomain.localToRemote(effect);
+
     message.ok({
         controlDomain: controlDomainName,
         controlReceptionist: controlDomain.receptionist,
         destroy: destroyCapURI,
         dispatch: dispatchCapURI,
         domain: domainName,
+        effect: effectCapURI,
         eventLoop: eventLoopCapURI,
         receptionist: domain.receptionist,
         sponsor: sponsorCapURI
