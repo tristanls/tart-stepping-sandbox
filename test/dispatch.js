@@ -104,7 +104,7 @@ test['dispatch returns an effect of actor processing message after dispatch'] = 
 
     createSandbox({ok: okCreated, fail: fail, transport: transport});
     test.ok(stepping.eventLoop({
-        // log: function (effect) { 
+        // log: function (effect) {
         //     if (effect === false) {
         //         console.log('no events exist for dispatch');
         //     } else {
