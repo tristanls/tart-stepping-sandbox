@@ -94,12 +94,17 @@ sandbox.createBeh = function createBeh (message) {
     var host = this.sponsor;
     var revokes = [];
 
+    // create transport proxy
+    var transportRevocableCaps = revocable.proxy(message.transport);
+    revokes.push(transportRevocableCaps.revokeBeh);
+    var transportProxy = host(transportRevocableCaps.proxyBeh);
+
     // create sandbox control domain name
     var controlDomainName = crypto.randomBytes(42).toString('base64');    
 
     // create sandbox control domain
     var controlDomain = marshal.domain(
-        'ansible://' + controlDomainName + '/', host, message.transport);
+        'ansible://' + controlDomainName + '/', host, transportProxy);
 
     // create new stepping configuration
     var stepping = tart.stepping();
@@ -109,7 +114,7 @@ sandbox.createBeh = function createBeh (message) {
 
     // create the sandbox domain
     var domain = marshal.domain(
-        'ansible://' + domainName + '/', stepping.sponsor, message.transport);
+        'ansible://' + domainName + '/', stepping.sponsor, transportProxy);
 
     var sandbox = controlDomain.sponsor(vm.sandboxBeh);
 
